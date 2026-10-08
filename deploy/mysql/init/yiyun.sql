@@ -285,8 +285,8 @@ VALUES
 INSERT INTO sys_user
 (username, password, nickname, status)
 VALUES
-('admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '管理员', 1),
-('test', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '测试用户', 1);
+('admin', '$2a$10$JKi3X.4ZEFkswnAIfeUaLuK1rq2NFnuVtnyYiEau7USYa1uZDW.qq', '管理员', 1),
+('test', '$2a$10$JKi3X.4ZEFkswnAIfeUaLuK1rq2NFnuVtnyYiEau7USYa1uZDW.qq', '测试用户', 1);
 
 INSERT INTO heritage_project
 (

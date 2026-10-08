@@ -24,6 +24,10 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+jwt:
+  secret: yiyun-heritage-ai-platform-2024-secret-key-must-be-long-enough
+  expiration: 86400000
+
 logging:
   level:
     com.yiyun: debug
