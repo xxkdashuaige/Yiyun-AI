@@ -28,6 +28,11 @@ jwt:
   secret: yiyun-heritage-ai-platform-2024-secret-key-must-be-long-enough
   expiration: 86400000
 
+ai-service:
+  base-url: http://localhost:8000
+  connect-timeout: 5000
+  read-timeout: 60000
+
 logging:
   level:
     com.yiyun: debug

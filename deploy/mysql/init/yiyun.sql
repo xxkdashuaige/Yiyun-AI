@@ -84,6 +84,34 @@ CREATE TABLE heritage_project (
   COLLATE=utf8mb4_unicode_ci
   COMMENT='非遗项目表';
 
+DROP TABLE IF EXISTS knowledge_chunk;
+
+CREATE TABLE knowledge_chunk (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '知识片段ID',
+    document_id BIGINT UNSIGNED NOT NULL COMMENT '所属知识文档ID',
+    heritage_project_id BIGINT UNSIGNED NOT NULL COMMENT '所属非遗项目ID（冗余字段，便于按项目检索）',
+
+    chunk_index INT NOT NULL COMMENT '片段在原文中的序号',
+    chunk_text TEXT NOT NULL COMMENT '片段文本内容',
+
+    embedding_id VARCHAR(128) DEFAULT NULL COMMENT 'FAISS向量索引ID（对应chunk.id）',
+    token_count INT DEFAULT NULL COMMENT '片段Token数量',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+
+    PRIMARY KEY (id),
+    KEY idx_document_id (document_id),
+    KEY idx_heritage_project_id (heritage_project_id),
+    KEY idx_chunk_index (chunk_index),
+
+    CONSTRAINT fk_chunk_document
+        FOREIGN KEY (document_id)
+        REFERENCES knowledge_document(id)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='非遗RAG知识片段表';
+
 DROP TABLE IF EXISTS knowledge_document;
 
 CREATE TABLE knowledge_document (
@@ -94,7 +122,6 @@ CREATE TABLE knowledge_document (
     doc_type VARCHAR(50) NOT NULL COMMENT '知识类型',
     content LONGTEXT NOT NULL COMMENT '知识正文',
 
-    embedding_id VARCHAR(128) DEFAULT NULL COMMENT 'FAISS向量索引ID',
     source VARCHAR(500) DEFAULT NULL COMMENT '知识来源',
     author VARCHAR(100) DEFAULT NULL COMMENT '作者',
 

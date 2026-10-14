@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yiyun.entity.SysUser;
 import com.yiyun.mapper.SysUserMapper;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -46,8 +45,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         if (user.getStatus() == 0) {
             throw new UsernameNotFoundException("用户已被禁用");
         }
-        // 返回 Spring Security 的 User 对象，包含用户名、密码、权限列表
-        return new User(
+        return new UserDetailsImpl(
+                user.getId(),
                 user.getUsername(),
                 user.getPassword(),
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))

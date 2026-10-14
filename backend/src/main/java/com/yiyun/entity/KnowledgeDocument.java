@@ -32,9 +32,6 @@ public class KnowledgeDocument {
     /** 知识正文 */
     private String content;
 
-    /** FAISS 向量索引 ID（用于 RAG 检索） */
-    private String embeddingId;
-
     /** 知识来源 */
     private String source;
 
