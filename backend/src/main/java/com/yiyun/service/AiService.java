@@ -5,6 +5,7 @@ import com.yiyun.dto.AiChatRequest;
 import com.yiyun.dto.AiChatResponse;
 import com.yiyun.dto.AiTaskResponse;
 import com.yiyun.dto.ImageGenerateRequest;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * AI 生成服务接口
@@ -19,6 +20,15 @@ public interface AiService {
      * @return AI 回答及来源
      */
     AiChatResponse chat(AiChatRequest request, Long userId);
+
+    /**
+     * 流式文本对话（SSE）
+     *
+     * @param request 用户请求
+     * @param userId  当前用户 ID
+     * @return SseEmitter 用于向前端推送流式事件
+     */
+    SseEmitter chatStream(AiChatRequest request, Long userId);
 
     /**
      * 提交图像生成任务（异步）

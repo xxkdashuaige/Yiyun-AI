@@ -3,6 +3,8 @@ package com.yiyun.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yiyun.dto.SaveWorkRequest;
 import com.yiyun.dto.SourceItem;
 import com.yiyun.dto.WorkListRequest;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,13 +34,16 @@ public class WorkServiceImpl implements WorkService {
     private final BizUserWorkMapper workMapper;
     private final BizWorkSourceMapper workSourceMapper;
     private final AiTaskMapper aiTaskMapper;
+    private final ObjectMapper objectMapper;
 
     public WorkServiceImpl(BizUserWorkMapper workMapper,
                            BizWorkSourceMapper workSourceMapper,
-                           AiTaskMapper aiTaskMapper) {
+                           AiTaskMapper aiTaskMapper,
+                           ObjectMapper objectMapper) {
         this.workMapper = workMapper;
         this.workSourceMapper = workSourceMapper;
         this.aiTaskMapper = aiTaskMapper;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -69,10 +75,37 @@ public class WorkServiceImpl implements WorkService {
         work.setUpdatedAt(LocalDateTime.now());
         workMapper.insert(work);
 
+        List<SourceItem> sources = parseSources(task.getSourcesJson());
+        for (SourceItem item : sources) {
+            BizWorkSource ws = new BizWorkSource();
+            ws.setWorkId(work.getId());
+            ws.setHeritageProjectId(item.getHeritageProjectId() != null
+                    ? item.getHeritageProjectId() : request.getHeritageProjectId());
+            ws.setSourceType(item.getDocType());
+            ws.setSourceTitle(item.getTitle());
+            ws.setSourceContent(item.getContent());
+            ws.setRetrievalScore(item.getScore());
+            ws.setCreatedAt(LocalDateTime.now());
+            workSourceMapper.insert(ws);
+        }
+
         WorkResponse resp = new WorkResponse();
         BeanUtils.copyProperties(work, resp);
-        resp.setSources(new ArrayList<>());
+        resp.setSources(sources);
         return resp;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<SourceItem> parseSources(String sourcesJson) {
+        if (sourcesJson == null || sourcesJson.isBlank()) {
+            return new ArrayList<>();
+        }
+        try {
+            List<SourceItem> list = objectMapper.readValue(sourcesJson, new TypeReference<List<SourceItem>>() {});
+            return list != null ? list : Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override

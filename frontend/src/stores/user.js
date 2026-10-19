@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { login as loginApi, register as registerApi } from '@/api/auth'
+import { login as loginApi, register as registerApi, getMe } from '@/api/auth'
 
 function parseUserInfo() {
   try {
@@ -41,6 +41,26 @@ export const useUserStore = defineStore('user', () => {
     return data
   }
 
+  async function refreshUserInfo() {
+    if (!token.value) return
+    try {
+      const data = await getMe()
+      userInfo.value = {
+        ...userInfo.value,
+        userId: data.userId,
+        username: data.username,
+        nickname: data.nickname,
+        avatarUrl: data.avatarUrl,
+        email: data.email,
+        phone: data.phone,
+        createdAt: data.createdAt,
+      }
+      localStorage.setItem('yy_user', JSON.stringify(userInfo.value))
+    } catch (e) {
+      console.warn('刷新用户信息失败', e)
+    }
+  }
+
   function logout() {
     token.value = ''
     userInfo.value = null
@@ -48,5 +68,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('yy_user')
   }
 
-  return { token, userInfo, isLoggedIn, login, register, logout }
+  return { token, userInfo, isLoggedIn, login, register, refreshUserInfo, logout }
 })

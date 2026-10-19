@@ -47,6 +47,9 @@ public class AiTask {
     /** 错误信息 */
     private String errorMessage;
 
+    /** RAG 来源 JSON（保存作品时关联写入 biz_work_source） */
+    private String sourcesJson;
+
     /** 开始时间 */
     private LocalDateTime startedAt;
 

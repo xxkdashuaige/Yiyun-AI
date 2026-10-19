@@ -3,13 +3,16 @@ AI 接口路由模块
 ----------------
 提供以下接口：
 - POST /api/ai/chat: 文本对话，返回 AI 回答及 RAG 检索来源
+- POST /api/ai/chat/stream: 流式文本对话（SSE），逐块返回回答文本，末尾发送来源
 - POST /api/ai/index/rebuild: 全量重建 FAISS 向量索引
 """
 
+import json
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from app.schemas import ChatRequest, ChatResponse, SourceItem
 from app.rag.retriever import retrieve
-from app.core.llm import generate_reply
+from app.core.llm import generate_reply, generate_reply_stream
 
 router = APIRouter(prefix="/api/ai", tags=["AI"])
 
@@ -34,7 +37,42 @@ def chat(req: ChatRequest):
     reply = generate_reply(req.message, contexts, conversation_history=req.conversation_history)
 
     # 组装来源信息
-    sources = [
+    sources = _build_sources(contexts)
+
+    return ChatResponse(reply=reply, sources=sources)
+
+
+@router.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    """
+    AI 文本对话流式接口（SSE）。
+
+    事件格式：
+    - data: {"delta": "文本片段"}   逐个文本片段
+    - data: {"sources": [...]}      流末尾发送 RAG 来源列表
+    - data: [DONE]                  流结束标记
+    """
+    if not req.message or not req.message.strip():
+        raise HTTPException(status_code=400, detail="message 不能为空")
+
+    contexts = retrieve(req.message, heritage_project_id=req.heritage_project_id)
+    sources = _build_sources(contexts)
+
+    def event_generator():
+        for delta in generate_reply_stream(
+            req.message, contexts, conversation_history=req.conversation_history
+        ):
+            yield f"data: {json.dumps({'delta': delta}, ensure_ascii=False)}\n\n"
+        sources_data = [s.model_dump() for s in sources]
+        yield f"data: {json.dumps({'sources': sources_data}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+def _build_sources(contexts: list[dict]) -> list[SourceItem]:
+    """从检索结果组装来源列表"""
+    return [
         SourceItem(
             chunk_id=c["chunk_id"],
             document_id=c["document_id"],
@@ -47,8 +85,6 @@ def chat(req: ChatRequest):
         )
         for c in contexts
     ]
-
-    return ChatResponse(reply=reply, sources=sources)
 
 
 @router.post("/index/rebuild")

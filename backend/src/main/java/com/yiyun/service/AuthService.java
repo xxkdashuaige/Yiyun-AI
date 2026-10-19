@@ -1,13 +1,15 @@
 package com.yiyun.service;
 
+import com.yiyun.dto.ChangePasswordRequest;
 import com.yiyun.dto.LoginRequest;
 import com.yiyun.dto.LoginResponse;
 import com.yiyun.dto.RegisterRequest;
+import com.yiyun.dto.UserInfoResponse;
 
 /**
  * 认证服务接口
  * <p>
- * 定义登录、注册等认证相关的业务方法。
+ * 定义登录、注册、用户信息、修改密码等认证相关的业务方法。
  */
 public interface AuthService {
 
@@ -26,4 +28,20 @@ public interface AuthService {
      * @return 注册成功后直接返回登录响应（Token + 用户信息）
      */
     LoginResponse register(RegisterRequest request);
+
+    /**
+     * 获取当前登录用户信息
+     *
+     * @param userId 用户 ID
+     * @return 用户信息
+     */
+    UserInfoResponse getCurrentUserInfo(Long userId);
+
+    /**
+     * 修改密码
+     *
+     * @param userId  用户 ID
+     * @param request 修改密码请求
+     */
+    void changePassword(Long userId, ChangePasswordRequest request);
 }

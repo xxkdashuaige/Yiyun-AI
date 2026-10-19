@@ -1,13 +1,16 @@
 package com.yiyun.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.yiyun.dto.ChangePasswordRequest;
 import com.yiyun.dto.LoginRequest;
 import com.yiyun.dto.LoginResponse;
 import com.yiyun.dto.RegisterRequest;
+import com.yiyun.dto.UserInfoResponse;
 import com.yiyun.entity.SysUser;
 import com.yiyun.mapper.SysUserMapper;
 import com.yiyun.service.AuthService;
 import com.yiyun.util.JwtUtil;
+import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -102,5 +105,34 @@ public class AuthServiceImpl implements AuthService {
         // 5. 生成 Token 并返回（注册即登录）
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
         return new LoginResponse(token, user.getId(), user.getUsername(), user.getNickname(), user.getAvatarUrl());
+    }
+
+    @Override
+    public UserInfoResponse getCurrentUserInfo(Long userId) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        UserInfoResponse resp = new UserInfoResponse();
+        BeanUtils.copyProperties(user, resp);
+        resp.setUserId(user.getId());
+        return resp;
+    }
+
+    @Override
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("旧密码错误");
+        }
+        if (request.getNewPassword().length() < 6) {
+            throw new RuntimeException("新密码长度不能少于 6 位");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        sysUserMapper.updateById(user);
     }
 }

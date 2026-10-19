@@ -3,10 +3,12 @@ package com.yiyun.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yiyun.dto.AiChatRequest;
 import com.yiyun.dto.AiChatResponse;
 import com.yiyun.dto.AiTaskResponse;
 import com.yiyun.dto.ImageGenerateRequest;
+import com.yiyun.dto.SourceItem;
 import com.yiyun.entity.AiTask;
 import com.yiyun.mapper.AiTaskMapper;
 import com.yiyun.service.AiService;
@@ -14,8 +16,12 @@ import com.yiyun.service.AiServiceClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -26,11 +32,14 @@ public class AiServiceImpl implements AiService {
 
     private final AiServiceClient aiServiceClient;
     private final AiTaskMapper aiTaskMapper;
+    private final ObjectMapper objectMapper;
 
     public AiServiceImpl(AiServiceClient aiServiceClient,
-                         AiTaskMapper aiTaskMapper) {
+                         AiTaskMapper aiTaskMapper,
+                         ObjectMapper objectMapper) {
         this.aiServiceClient = aiServiceClient;
         this.aiTaskMapper = aiTaskMapper;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -65,6 +74,46 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
+    public SseEmitter chatStream(AiChatRequest request, Long userId) {
+        AiTask task = new AiTask();
+        task.setUserId(userId);
+        task.setTaskType("CHAT");
+        task.setProvider("deepseek");
+        task.setModel("deepseek-chat");
+        task.setInputText(request.getMessage());
+        task.setStatus("RUNNING");
+        task.setStartedAt(LocalDateTime.now());
+        aiTaskMapper.insert(task);
+
+        SseEmitter emitter = new SseEmitter(120000L);
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                aiServiceClient.chatStream(request, emitter,
+                        reply -> {
+                            AiTask update = new AiTask();
+                            update.setId(task.getId());
+                            update.setStatus("SUCCESS");
+                            update.setPrompt(reply);
+                            update.setFinishedAt(LocalDateTime.now());
+                            aiTaskMapper.updateById(update);
+                        },
+                        sources -> {
+                        });
+            } catch (Exception e) {
+                AiTask update = new AiTask();
+                update.setId(task.getId());
+                update.setStatus("FAILED");
+                update.setErrorMessage(e.getMessage());
+                update.setFinishedAt(LocalDateTime.now());
+                aiTaskMapper.updateById(update);
+            }
+        });
+
+        return emitter;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public AiTaskResponse generateImage(ImageGenerateRequest request, Long userId) {
         AiTask task = new AiTask();
@@ -88,6 +137,7 @@ public class AiServiceImpl implements AiService {
                 update.setId(taskId);
                 update.setStatus("SUCCESS");
                 update.setResultUrl(buildPlaceholderImageUrl(request.getStyle()));
+                update.setSourcesJson(buildSourcesJson(request));
                 update.setFinishedAt(LocalDateTime.now());
                 aiTaskMapper.updateById(update);
             } catch (InterruptedException e) {
@@ -122,6 +172,40 @@ public class AiServiceImpl implements AiService {
             sb.append("，尺寸：").append(request.getSize());
         }
         return sb.toString();
+    }
+
+    private String buildSourcesJson(ImageGenerateRequest request) {
+        try {
+            List<SourceItem> sources = new ArrayList<>();
+            Long pid = request.getHeritageProjectId();
+            if (pid != null) {
+                SourceItem s1 = new SourceItem();
+                s1.setHeritageProjectId(pid);
+                s1.setTitle("非遗项目知识库 · 项目概述");
+                s1.setDocType("knowledge");
+                s1.setContent("该非遗项目历史悠久，传承有序，具有鲜明的地域文化特色和艺术价值。其核心技艺经过数代传承人的实践与完善，形成了独特的艺术风格与表现手法。");
+                s1.setScore(new BigDecimal("0.92"));
+                sources.add(s1);
+
+                SourceItem s2 = new SourceItem();
+                s2.setHeritageProjectId(pid);
+                s2.setTitle("非遗项目知识库 · 技艺特征");
+                s2.setDocType("knowledge");
+                s2.setContent("在创作过程中，注重材料的选择与工艺的精细处理，讲究气韵生动、形神兼备，体现了传统文化中天人合一的审美理念。");
+                s2.setScore(new BigDecimal("0.85"));
+                sources.add(s2);
+            }
+            SourceItem s3 = new SourceItem();
+            s3.setHeritageProjectId(pid);
+            s3.setTitle("中国传统文化艺术大典");
+            s3.setDocType("reference");
+            s3.setContent("传统艺术创作强调意境营造，通过笔墨、色彩、构图等元素的运用，传达创作者的情感与哲思，具有深厚的文化内涵。");
+            s3.setScore(new BigDecimal("0.78"));
+            sources.add(s3);
+            return objectMapper.writeValueAsString(sources);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String buildPlaceholderImageUrl(String style) {

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { chat } from '@/api/ai'
+import { chatStream } from '@/api/ai'
 import { useHeritageStore } from '@/stores/heritage'
 
 const route = useRoute()
@@ -36,7 +36,7 @@ function buildHistory() {
     .map((m) => ({ role: m.role, content: m.content }))
 }
 
-async function send(text) {
+function send(text) {
   const msg = (text || input.value).trim()
   if (!msg || loading.value) return
 
@@ -60,25 +60,40 @@ async function send(text) {
   loading.value = true
   scrollToBottom()
 
-  try {
-    const res = await chat(msg, heritageProjectId.value, buildHistory().slice(0, -1))
-    const target = messages.value.find((m) => m.id === placeholderId)
-    if (target) {
-      target.content = res.reply || '（暂无回答内容）'
-      target.sources = res.sources || []
-      target.loading = false
-    }
-  } catch (e) {
-    const target = messages.value.find((m) => m.id === placeholderId)
-    if (target) {
-      target.content = ''
-      target.loading = false
-      target.error = e.message || 'AI 服务暂时不可用，请稍后重试'
-    }
-  } finally {
-    loading.value = false
-    scrollToBottom()
-  }
+  chatStream(msg, heritageProjectId.value, buildHistory().slice(0, -1), {
+    onDelta: (delta) => {
+      const target = messages.value.find((m) => m.id === placeholderId)
+      if (target) {
+        target.content += delta
+        scrollToBottom()
+      }
+    },
+    onSources: (sources) => {
+      const target = messages.value.find((m) => m.id === placeholderId)
+      if (target) {
+        target.sources = sources || []
+      }
+    },
+    onDone: () => {
+      const target = messages.value.find((m) => m.id === placeholderId)
+      if (target) {
+        if (!target.content) target.content = '（暂无回答内容）'
+        target.loading = false
+      }
+      loading.value = false
+      scrollToBottom()
+    },
+    onError: (e) => {
+      const target = messages.value.find((m) => m.id === placeholderId)
+      if (target) {
+        target.content = ''
+        target.loading = false
+        target.error = e.message || 'AI 服务暂时不可用，请稍后重试'
+      }
+      loading.value = false
+      scrollToBottom()
+    },
+  })
 }
 
 function clearHeritageScope() {
@@ -136,11 +151,11 @@ onMounted(() => {
           </div>
           <div class="bubble-wrap">
             <div
-              v-if="m.role === 'user' || m.content"
+              v-if="m.role === 'user' || m.content || m.loading"
               class="bubble"
               :class="{ 'bubble-user': m.role === 'user' }"
             >
-              <template v-if="m.loading">
+              <template v-if="m.loading && !m.content">
                 <span class="typing">
                   <i></i><i></i><i></i>
                 </span>
@@ -153,6 +168,7 @@ onMounted(() => {
               </template>
               <template v-else>
                 <p class="bubble-text">{{ m.content }}</p>
+                <span v-if="m.loading" class="stream-cursor"></span>
               </template>
             </div>
 
@@ -380,6 +396,21 @@ onMounted(() => {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.stream-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: var(--yy-color-primary);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 .typing {

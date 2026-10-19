@@ -13,9 +13,13 @@ const navItems = [
   { name: 'Works', label: '我的作品' },
 ]
 
-function handleLogout() {
-  userStore.logout()
-  router.push({ name: 'Home' })
+function handleCommand(command) {
+  if (command === 'profile') {
+    router.push({ name: 'Profile' })
+  } else if (command === 'logout') {
+    userStore.logout()
+    router.push({ name: 'Home' })
+  }
 }
 </script>
 
@@ -40,7 +44,7 @@ function handleLogout() {
 
       <div class="app-header__user">
         <template v-if="userStore.isLoggedIn">
-          <el-dropdown @command="handleLogout">
+          <el-dropdown @command="handleCommand">
             <span class="app-header__username">
               {{ userStore.userInfo?.nickname || userStore.userInfo?.username }}
               <el-icon><ArrowDown /></el-icon>

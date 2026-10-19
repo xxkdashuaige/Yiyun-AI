@@ -9,12 +9,14 @@ import com.yiyun.dto.ImageGenerateRequest;
 import com.yiyun.service.AiService;
 import com.yiyun.util.SecurityUtil;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * AI 生成接口控制器
  * <p>
- * 提供文本对话、图像生成、任务查询等接口，需登录后访问。
+ * 提供文本对话、流式对话、图像生成、任务查询等接口，需登录后访问。
  */
 @RestController
 @RequestMapping("/api/ai")
@@ -36,6 +38,20 @@ public class AiController {
     public Result<AiChatResponse> chat(@Valid @RequestBody AiChatRequest request) {
         Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(aiService.chat(request, userId));
+    }
+
+    /**
+     * AI 文本对话（流式 SSE）
+     * <p>
+     * 事件格式：
+     * - data: {"delta": "文本片段"}  逐个文本片段
+     * - data: {"sources": [...]}     流末尾发送 RAG 来源列表
+     * - data: [DONE]                 流结束标记
+     */
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chatStream(@Valid @RequestBody AiChatRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        return aiService.chatStream(request, userId);
     }
 
     /**
