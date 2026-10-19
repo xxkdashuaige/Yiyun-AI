@@ -1,0 +1,182 @@
+@import './variables.css';
+@import './reset.css';
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === 排版 === */
+h1, h2, h3, h4 {
+  color: var(--yy-color-text);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+h1 {
+  font-size: 40px;
+}
+
+h2 {
+  font-size: 28px;
+}
+
+h3 {
+  font-size: 20px;
+}
+
+h4 {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 28px;
+  }
+  h2 {
+    font-size: 22px;
+  }
+}
+
+/* === 工具类 === */
+.yy-container {
+  width: 100%;
+  max-width: var(--yy-content-width);
+  margin: 0 auto;
+  padding: 0 var(--yy-page-padding);
+}
+
+@media (max-width: 768px) {
+  .yy-container {
+    padding: 0 16px;
+  }
+}
+
+.yy-section {
+  padding: 64px 0;
+}
+
+@media (max-width: 768px) {
+  .yy-section {
+    padding: 40px 0;
+  }
+}
+
+.yy-card {
+  background: var(--yy-color-surface);
+  border-radius: var(--yy-radius-card);
+  box-shadow: var(--yy-shadow-card);
+  border: 1px solid var(--yy-color-border);
+  transition: box-shadow var(--yy-transition), transform var(--yy-transition);
+}
+
+.yy-card:hover {
+  box-shadow: var(--yy-shadow-hover);
+}
+
+.yy-divider {
+  height: 1px;
+  background: var(--yy-color-border);
+  margin: 32px 0;
+}
+
+/* === Element Plus 微调 === */
+.el-button--primary {
+  background-color: var(--yy-color-primary) !important;
+  border-color: var(--yy-color-primary) !important;
+  color: #fff !important;
+}
+
+.el-button--primary:hover {
+  background-color: var(--yy-color-primary-hover) !important;
+  border-color: var(--yy-color-primary-hover) !important;
+}
+
+.el-button--primary:active {
+  background-color: var(--yy-color-primary-active) !important;
+  border-color: var(--yy-color-primary-active) !important;
+}
+
+/* === Element Plus 输入框聚焦态（朱砂红覆盖默认蓝色） === */
+.el-input__wrapper.is-focus,
+.el-input.is-focus .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--yy-color-primary) inset !important;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--yy-color-primary) inset !important;
+}
+
+.el-textarea.is-focus .el-textarea__inner,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--yy-color-primary) inset !important;
+  outline: none !important;
+}
+
+.el-input__inner:focus {
+  outline: none !important;
+}
+
+/* === Element Plus 单选/复选激活态 === */
+.el-radio__input.is-checked .el-radio__inner,
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  border-color: var(--yy-color-primary) !important;
+  background-color: var(--yy-color-primary) !important;
+}
+
+.el-radio__input.is-checked + .el-radio__label,
+.el-checkbox__input.is-checked + .el-checkbox__label {
+  color: var(--yy-color-primary) !important;
+}
+
+/* === Element Plus 分页激活态 === */
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: var(--yy-color-primary) !important;
+}
+
+/* === Element Plus 标签页激活态 === */
+.el-tabs__item.is-active,
+.el-tabs__item:hover {
+  color: var(--yy-color-primary) !important;
+}
+
+.el-tabs__active-bar {
+  background-color: var(--yy-color-primary) !important;
+}
+
+.el-input__wrapper {
+  border-radius: var(--yy-radius-button) !important;
+  box-shadow: 0 0 0 1px var(--yy-color-border) inset !important;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--yy-color-primary) inset !important;
+}
+
+.el-input.is-focus .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--yy-color-primary) inset !important;
+}
+
+.el-form-item__label {
+  color: var(--yy-color-text-secondary) !important;
+}
+
+/* === 滚动条 === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--yy-color-accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--yy-color-muted);
+}

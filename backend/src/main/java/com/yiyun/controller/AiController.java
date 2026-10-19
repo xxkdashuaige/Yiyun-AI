@@ -5,6 +5,7 @@ import com.yiyun.common.Result;
 import com.yiyun.dto.AiChatRequest;
 import com.yiyun.dto.AiChatResponse;
 import com.yiyun.dto.AiTaskResponse;
+import com.yiyun.dto.ImageGenerateRequest;
 import com.yiyun.service.AiService;
 import com.yiyun.util.SecurityUtil;
 import jakarta.validation.Valid;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * AI 生成接口控制器
  * <p>
- * 提供文本对话、任务查询等接口，需登录后访问。
+ * 提供文本对话、图像生成、任务查询等接口，需登录后访问。
  */
 @RestController
 @RequestMapping("/api/ai")
@@ -35,6 +36,15 @@ public class AiController {
     public Result<AiChatResponse> chat(@Valid @RequestBody AiChatRequest request) {
         Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(aiService.chat(request, userId));
+    }
+
+    /**
+     * 提交图像生成任务（异步，返回任务 ID，前端轮询任务状态）
+     */
+    @PostMapping("/generate/image")
+    public Result<AiTaskResponse> generateImage(@Valid @RequestBody ImageGenerateRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        return Result.success(aiService.generateImage(request, userId));
     }
 
     /**

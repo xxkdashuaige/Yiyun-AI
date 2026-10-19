@@ -1,0 +1,49 @@
+:root {
+  /* === 品牌色 === */
+  --yy-color-primary: #782f35;
+  --yy-color-primary-hover: #8c3a41;
+  --yy-color-primary-active: #5e2529;
+  --yy-color-bg: #f7f4ee;
+  --yy-color-surface: #ffffff;
+  --yy-color-text: #272722;
+  --yy-color-text-secondary: #5c5a52;
+  --yy-color-muted: #9a968c;
+  --yy-color-border: #e7e0d5;
+  --yy-color-accent: #d7c8ad;
+  --yy-color-success: #5a8a5a;
+  --yy-color-warning: #c89b3c;
+  --yy-color-danger: #b3404a;
+
+  /* === Element Plus 主题覆盖 === */
+  --el-color-primary: #782f35;
+  --el-color-primary-light-3: #9a4a50;
+  --el-color-primary-light-5: #b87a7e;
+  --el-color-primary-light-7: #d4a9ac;
+  --el-color-primary-light-8: #e1c2c4;
+  --el-color-primary-light-9: #efdcde;
+  --el-color-primary-dark-2: #5e2529;
+  --el-border-radius-base: 8px;
+  --el-border-color: #e7e0d5;
+  --el-border-color-light: #efe9de;
+  --el-bg-color: #ffffff;
+  --el-bg-color-page: #f7f4ee;
+  --el-text-color-primary: #272722;
+  --el-text-color-regular: #5c5a52;
+  --el-text-color-secondary: #9a968c;
+  --el-font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --el-fill-color-light: #f7f4ee;
+  --el-fill-color-lighter: #faf7f1;
+
+  /* === 布局 === */
+  --yy-content-width: 1280px;
+  --yy-page-padding: 32px;
+  --yy-radius-card: 12px;
+  --yy-radius-button: 8px;
+  --yy-shadow-card: 0 2px 12px rgba(39, 39, 34, 0.06);
+  --yy-shadow-hover: 0 8px 24px rgba(39, 39, 34, 0.12);
+  --yy-transition: 0.25s ease;
+
+  /* === 字体 === */
+  --yy-font-sans: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --yy-font-serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+}

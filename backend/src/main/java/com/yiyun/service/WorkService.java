@@ -1,6 +1,7 @@
 package com.yiyun.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.yiyun.dto.SaveWorkRequest;
 import com.yiyun.dto.WorkListRequest;
 import com.yiyun.dto.WorkResponse;
 
@@ -8,6 +9,15 @@ import com.yiyun.dto.WorkResponse;
  * 用户作品服务接口
  */
 public interface WorkService {
+
+    /**
+     * 保存 AI 生成的作品
+     *
+     * @param request 保存请求
+     * @param userId  当前用户 ID
+     * @return 作品信息
+     */
+    WorkResponse saveWork(SaveWorkRequest request, Long userId);
 
     /**
      * 分页查询当前用户的作品列表
