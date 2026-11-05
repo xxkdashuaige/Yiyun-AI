@@ -1,5 +1,7 @@
 import request from './request'
 import { useUserStore } from '@/stores/user'
+import router from '@/router'
+import { ElMessage } from 'element-plus'
 
 export function chat(message, heritageProjectId = null, conversationHistory = []) {
   const body = { message, conversationHistory }
@@ -21,9 +23,20 @@ export function chatStream(message, heritageProjectId, conversationHistory, call
     },
     body: JSON.stringify(body),
   })
-    .then((response) => {
+    .then(async (response) => {
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        let errMsg = `HTTP ${response.status}`
+        try {
+          const errData = await response.json()
+          if (errData.message) errMsg = errData.message
+        } catch (_) {}
+        if (response.status === 401) {
+          const userStore = useUserStore()
+          userStore.logout()
+          ElMessage.error('登录已过期，请重新登录')
+          router.push({ name: 'Login' })
+        }
+        throw new Error(errMsg)
       }
       const reader = response.body.getReader()
       const decoder = new TextDecoder('utf-8')

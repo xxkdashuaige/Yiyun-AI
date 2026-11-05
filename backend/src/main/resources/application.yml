@@ -33,6 +33,15 @@ ai-service:
   connect-timeout: 5000
   read-timeout: 60000
 
+ai:
+  image:
+    provider: dashscope
+    model: qwen-image-2.0
+
+app:
+  upload:
+    image-dir: ./uploads/images
+
 logging:
   level:
     com.yiyun: debug

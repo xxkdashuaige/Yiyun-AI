@@ -26,6 +26,10 @@ class Settings:
     # 本地 Ollama（开发阶段节约成本，无需 API Key）
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+    # OpenAI 兼容接口（适用于 WaLiAPI 等 OpenAI 兼容网关）
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8777/v1")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "kilo-auto/free")
 
     # ==================== Embedding 配置 ====================
     EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "local")
@@ -45,6 +49,21 @@ class Settings:
     # ==================== 文本切分配置 ====================
     CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "400"))              # 单片段目标字数
     CHUNK_OVERLAP_RATIO: float = float(os.getenv("CHUNK_OVERLAP_RATIO", "0.15"))  # 相邻片段重叠比例
+
+    # ==================== 图像生成配置（DashScope Qwen-Image） ====================
+    IMAGE_PROVIDER: str = os.getenv("IMAGE_PROVIDER", "")
+    DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", os.getenv("IMAGE_API_KEY", ""))
+    QWEN_IMAGE_MODEL: str = os.getenv("IMAGE_MODEL", "qwen-image-2.0")
+    # 百炼业务空间 ID（Workspace ID），用于构建专属域名
+    DASHSCOPE_WORKSPACE_ID: str = os.getenv("DASHSCOPE_WORKSPACE_ID", "")
+    DASHSCOPE_REGION: str = os.getenv("DASHSCOPE_REGION", "cn-beijing")
+
+    @property
+    def dashscope_base_url(self) -> str:
+        """构建百炼平台专属域名 base_url。"""
+        if self.DASHSCOPE_WORKSPACE_ID:
+            return f"https://{self.DASHSCOPE_WORKSPACE_ID}.{self.DASHSCOPE_REGION}.maas.aliyuncs.com/api/v1"
+        return "https://dashscope.aliyuncs.com/api/v1"
 
 
 settings = Settings()

@@ -31,7 +31,9 @@ def fetch_all_knowledge_documents():
     try:
         with conn.cursor() as cursor:
             sql = """
-                SELECT id, heritage_project_id, title, doc_type, content, source, author
+                SELECT id, heritage_project_id, title, doc_type, content,
+                       source, source_url, author, publish_date, access_date,
+                       page_no, rights_note, verified
                 FROM knowledge_document
                 WHERE status = 1
             """
@@ -56,7 +58,9 @@ def fetch_chunks_by_ids(chunk_ids, heritage_project_id=None):
             sql = f"""
                 SELECT c.id, c.document_id, c.heritage_project_id, c.chunk_index,
                        c.chunk_text, c.embedding_id,
-                       d.title AS document_title, d.doc_type, d.source, d.author
+                       d.title AS document_title, d.doc_type, d.source,
+                       d.source_url, d.author, d.publish_date, d.access_date,
+                       d.page_no, d.rights_note, d.verified
                 FROM knowledge_chunk c
                 JOIN knowledge_document d ON c.document_id = d.id
                 WHERE c.id IN ({placeholders})

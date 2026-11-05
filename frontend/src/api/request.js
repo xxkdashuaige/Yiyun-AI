@@ -33,9 +33,13 @@ request.interceptors.response.use(
       const { status, data } = error.response
       if (status === 401) {
         const userStore = useUserStore()
-        userStore.logout()
-        ElMessage.error('登录已过期，请重新登录')
-        router.push({ name: 'Login' })
+        if (userStore.isLoggedIn) {
+          userStore.logout()
+          ElMessage.error('登录已过期，请重新登录')
+          if (router.currentRoute.value.name !== 'Login') {
+            router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } })
+          }
+        }
       } else {
         ElMessage.error(data?.message || error.message || '网络错误')
       }

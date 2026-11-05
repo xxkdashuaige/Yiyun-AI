@@ -23,7 +23,14 @@ class SourceItem(BaseModel):
     heritage_project_id: Optional[int] = None  # 所属非遗项目 ID
     title: str                            # 文档标题
     doc_type: Optional[str] = None        # 文档类型
-    source: Optional[str] = None          # 来源
+    source: Optional[str] = None          # 来源名称
+    source_url: Optional[str] = None      # 来源链接
+    author: Optional[str] = None          # 作者
+    publish_date: Optional[str] = None    # 发布日期
+    access_date: Optional[str] = None     # 访问日期
+    page_no: Optional[str] = None         # 页码
+    rights_note: Optional[str] = None     # 版权声明
+    verified: Optional[int] = None        # 是否已核验：0否 1是
     content: str                          # 片段文本内容
     score: float                          # 检索相似度得分
 

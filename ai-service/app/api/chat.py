@@ -70,6 +70,15 @@ async def chat_stream(req: ChatRequest):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+def _date_to_str(value) -> str | None:
+    """将 date/datetime 对象转为 ISO 格式字符串，None 保持不变"""
+    if value is None:
+        return None
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
 def _build_sources(contexts: list[dict]) -> list[SourceItem]:
     """从检索结果组装来源列表"""
     return [
@@ -80,6 +89,13 @@ def _build_sources(contexts: list[dict]) -> list[SourceItem]:
             title=c.get("title", ""),
             doc_type=c.get("doc_type"),
             source=c.get("source"),
+            source_url=c.get("source_url"),
+            author=c.get("author"),
+            publish_date=_date_to_str(c.get("publish_date")),
+            access_date=_date_to_str(c.get("access_date")),
+            page_no=c.get("page_no"),
+            rights_note=c.get("rights_note"),
+            verified=c.get("verified"),
             content=c["content"],
             score=c["score"],
         )

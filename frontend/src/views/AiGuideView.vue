@@ -151,7 +151,7 @@ onMounted(() => {
           </div>
           <div class="bubble-wrap">
             <div
-              v-if="m.role === 'user' || m.content || m.loading"
+              v-if="m.role === 'user' || m.content || m.loading || m.error"
               class="bubble"
               :class="{ 'bubble-user': m.role === 'user' }"
             >

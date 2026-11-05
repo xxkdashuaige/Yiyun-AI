@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -32,11 +33,29 @@ public class KnowledgeDocument {
     /** 知识正文 */
     private String content;
 
-    /** 知识来源 */
+    /** 知识来源名称 */
     private String source;
+
+    /** 知识来源链接 */
+    private String sourceUrl;
 
     /** 作者 */
     private String author;
+
+    /** 发布日期 */
+    private LocalDate publishDate;
+
+    /** 访问日期 */
+    private LocalDate accessDate;
+
+    /** 页码 */
+    private String pageNo;
+
+    /** 版权声明 */
+    private String rightsNote;
+
+    /** 是否已核验：0 否，1 是 */
+    private Integer verified;
 
     /** 状态：0 禁用，1 正常 */
     private Integer status;

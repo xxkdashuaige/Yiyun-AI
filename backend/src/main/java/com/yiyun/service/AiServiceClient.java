@@ -222,4 +222,55 @@ public class AiServiceClient {
             return null;
         }
     }
+
+    /**
+     * 调用 ai-service 提交图像生成异步任务。
+     *
+     * @param prompt 提示词
+     * @param style  风格（ink/oil/watercolor/chinese-painting/realistic）
+     * @param size   比例（1:1/16:9/9:16/4:3）
+     * @param count  生成数量
+     * @return DashScope 任务 ID
+     */
+    @SuppressWarnings("unchecked")
+    public String submitImageTask(String prompt, String style, String size, Integer count) {
+        String url = baseUrl + "/api/ai/generate/image";
+        Map<String, Object> body = new HashMap<>();
+        body.put("prompt", prompt);
+        if (style != null && !style.isBlank()) {
+            body.put("style", style);
+        }
+        if (size != null && !size.isBlank()) {
+            body.put("size", size);
+        }
+        if (count != null && count > 0) {
+            body.put("n", count);
+        }
+
+        Map<String, Object> response = restTemplate.postForObject(url, body, Map.class);
+        if (response == null) {
+            throw new RuntimeException("ai-service 图像生成响应为空");
+        }
+        Object taskId = response.get("task_id");
+        if (taskId == null) {
+            throw new RuntimeException("ai-service 未返回 task_id: " + response);
+        }
+        return taskId.toString();
+    }
+
+    /**
+     * 调用 ai-service 查询图像生成任务状态。
+     *
+     * @param providerTaskId DashScope 任务 ID
+     * @return {"status": "RUNNING"|"SUCCEEDED"|"FAILED", "image_url": "...", "error": "..."}
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getImageTaskStatus(String providerTaskId) {
+        String url = baseUrl + "/api/ai/tasks/" + providerTaskId;
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        if (response == null) {
+            throw new RuntimeException("ai-service 任务查询响应为空");
+        }
+        return response;
+    }
 }

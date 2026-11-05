@@ -32,6 +32,9 @@ public class AiTask {
     /** 模型名称 */
     private String model;
 
+    /** 外部 AI 服务任务 ID（如 DashScope task_id，用于轮询异步任务状态） */
+    private String providerTaskId;
+
     /** 输入内容 */
     private String inputText;
 

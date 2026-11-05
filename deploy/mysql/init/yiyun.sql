@@ -122,8 +122,14 @@ CREATE TABLE knowledge_document (
     doc_type VARCHAR(50) NOT NULL COMMENT '知识类型',
     content LONGTEXT NOT NULL COMMENT '知识正文',
 
-    source VARCHAR(500) DEFAULT NULL COMMENT '知识来源',
+    source VARCHAR(500) DEFAULT NULL COMMENT '知识来源名称',
+    source_url VARCHAR(500) DEFAULT NULL COMMENT '知识来源链接',
     author VARCHAR(100) DEFAULT NULL COMMENT '作者',
+    publish_date DATE DEFAULT NULL COMMENT '发布日期',
+    access_date DATE DEFAULT NULL COMMENT '访问日期',
+    page_no VARCHAR(50) DEFAULT NULL COMMENT '页码',
+    rights_note VARCHAR(500) DEFAULT NULL COMMENT '版权声明',
+    verified TINYINT NOT NULL DEFAULT 0 COMMENT '是否已核验：0否 1是',
 
     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1正常',
 
@@ -153,6 +159,7 @@ CREATE TABLE ai_task (
     task_type VARCHAR(50) NOT NULL COMMENT '任务类型：CHAT/IMAGE/VIDEO',
     provider VARCHAR(100) DEFAULT NULL COMMENT 'AI服务提供商',
     model VARCHAR(100) DEFAULT NULL COMMENT '模型名称',
+    provider_task_id VARCHAR(128) DEFAULT NULL COMMENT '外部AI服务任务ID（如DashScope task_id）',
 
     input_text TEXT COMMENT '输入内容',
     prompt TEXT COMMENT '生成Prompt',
@@ -329,31 +336,27 @@ INSERT INTO heritage_project
 )
 VALUES
 (
-    '苗族银饰',
+    '苗族银饰锻制技艺',
     2,
-    '贵州等地区',
-    '苗族传统银饰是苗族传统文化的重要组成部分，具有鲜明的民族特色。',
-    '介绍苗族银饰的历史发展与传承过程。',
-    '苗族银饰具有装饰、社会身份和传统习俗等方面的文化意义。',
-    '介绍苗族银饰的制作工艺、材料和表现形式。',
-    '/images/heritage/miaozu-silver.jpg',
+    '贵州省雷山县、湖南省凤凰县',
+    '苗族银饰锻制技艺在国家级名录中的官方名称即为「苗族银饰锻制技艺」，属传统技艺类，项目编号Ⅶ-40，2006年列入第一批国家级非物质文化遗产名录。',
+    '苗族银饰历史悠久，经历了从原始装饰品到岩石贝壳装饰品、从植物花卉饰品到金银饰品的演进历程。',
+    '苗族银饰不仅具有装饰作用，还承载着民族文化、社会身份和传统习俗的文化内涵，被视为苗族精神品质的体现。',
+    '银饰锻制由苗族银匠手工制作，包含铸炼、捶打、焊接、编结、洗涤等环节，工艺水平极高。',
+    'https://picsum.photos/seed/miaozu-silver/800/500',
     1
 );
 
 INSERT INTO knowledge_document
-(heritage_project_id, title, doc_type, content, source)
+(heritage_project_id, title, doc_type, content, source, source_url, author, publish_date, access_date, page_no, rights_note, verified)
 VALUES
-(1, '苗族银饰文化内涵', '文化内涵',
- '苗族银饰不仅具有装饰作用，还与民族文化、社会身份和传统习俗存在联系。',
- '苗族传统文化资料'),
-
-(1, '苗族银饰制作工艺', '工艺技法',
- '苗族银饰制作涉及熔炼、锻打、錾刻、焊接等传统工艺。',
- '非遗项目资料'),
-
-(1, '苗族银饰相关民俗', '民俗',
- '苗族银饰在部分传统节日和婚俗活动中具有重要作用。',
- '苗族民俗资料');
+(1, '苗族银饰锻制技艺（第一批国家级非物质文化遗产）基础介绍', '基础介绍',
+ '苗族银饰锻制技艺在国家级名录中的官方名称即为「苗族银饰锻制技艺」，属传统技艺类，项目编号Ⅶ-40，2006年列入第一批国家级非物质文化遗产名录，申报地区或单位为贵州省雷山县，保护单位为雷山县非物质文化遗产保护中心（另有一批名录另将湖南省凤凰县列为同批申报单元）。银饰是苗族最喜爱的传统饰物，主要用于妇女装饰，品种分为头饰、面饰、颈饰、肩饰、胸饰、腰饰、臂饰、脚饰、手饰等，彼此配合形成整体装饰效果。银凤冠和银花帽是头饰中的主要饰品，也是整套银饰系列之首，素有「龙头凤尾」之美称，制作复杂，使用的小件饰品少则一百五十余件，多则达两百余件，价值昂贵。苗族银饰精致美观，以贵州省雷山县和湖南省凤凰县的制品为代表，其中雷山县银匠主要集中在西江镇的控排、麻料、乌高村三村。银饰锻制是苗族民间独有的技艺，所有饰件均手工制作，式样和构造经匠师精心设计，由绘图到雕刻和制作共有30道工序，包含铸炼、捶打、焊接、编结、洗涤等环节，工艺水平极高。该技艺先后经历了从原始装饰品到岩石贝壳装饰品、从植物花卉饰品到金银饰品的演进历程，模式和形态基本定型，后品种式样仍不断翻新。文化层面，苗族人民在对外交往中把银饰作为礼品赠送友人，和藏族的哈达、汉族的珠宝一样珍贵；银饰洁白可爱、纯净无瑕、质地坚硬，被视为苗族精神品质的体现。保护现状方面，银饰锻打技艺一般在家庭内部传承，无法择优而授，原有艺人多已年老，真正能继承这一精湛工艺者不多，发展前景不容乐观，有必要加强保护。',
+ '中国非物质文化遗产网·中国非物质文化遗产数字博物馆（国家级项目名录页）',
+ 'https://www.ihchina.cn/project_details/14331/',
+ NULL, NULL, '2026-10-21', NULL,
+ '中国非物质文化遗产网官方公开项目介绍',
+ 1);
 
 -- 恢复外键检查
 SET FOREIGN_KEY_CHECKS = 1;

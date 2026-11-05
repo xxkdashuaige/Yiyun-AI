@@ -83,7 +83,13 @@ public class HeritageProjectServiceImpl implements HeritageProjectService {
             resp.setDocType(doc.getDocType());
             resp.setContent(doc.getContent());
             resp.setSource(doc.getSource());
+            resp.setSourceUrl(doc.getSourceUrl());
             resp.setAuthor(doc.getAuthor());
+            resp.setPublishDate(doc.getPublishDate());
+            resp.setAccessDate(doc.getAccessDate());
+            resp.setPageNo(doc.getPageNo());
+            resp.setRightsNote(doc.getRightsNote());
+            resp.setVerified(doc.getVerified());
             return resp;
         }).collect(Collectors.toList());
 

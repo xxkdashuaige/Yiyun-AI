@@ -132,6 +132,16 @@ watch(() => props.id, loadDetail)
                 <div class="doc-card__source">
                   <span v-if="doc.author">作者：{{ doc.author }}</span>
                   <span v-if="doc.source">来源：{{ doc.source }}</span>
+                  <span v-if="doc.accessDate">访问日期：{{ doc.accessDate }}</span>
+                  <span v-if="doc.pageNo">页码：{{ doc.pageNo }}</span>
+                  <span v-if="doc.rightsNote" class="doc-card__rights">{{ doc.rightsNote }}</span>
+                  <span v-if="doc.verified === 1" class="doc-card__verified">
+                    <el-icon><CircleCheckFilled /></el-icon> 已核验
+                  </span>
+                </div>
+                <div v-if="doc.sourceUrl" class="doc-card__link">
+                  <el-icon><Link /></el-icon>
+                  <a :href="doc.sourceUrl" target="_blank" rel="noopener">{{ doc.sourceUrl }}</a>
                 </div>
               </div>
             </div>
@@ -362,6 +372,36 @@ watch(() => props.id, loadDetail)
   border-top: 1px dashed var(--yy-color-border);
   font-size: 12px;
   color: var(--yy-color-muted);
+}
+
+.doc-card__rights {
+  color: var(--yy-color-text-secondary);
+}
+
+.doc-card__verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #67c23a;
+}
+
+.doc-card__link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--yy-color-primary);
+}
+
+.doc-card__link a {
+  color: var(--yy-color-primary);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.doc-card__link a:hover {
+  text-decoration: underline;
 }
 
 /* ===== AI 创作入口 ===== */

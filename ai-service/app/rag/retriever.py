@@ -100,7 +100,13 @@ def retrieve(query: str, heritage_project_id: int = None, top_k: int = None) -> 
             "title": row.get("document_title", ""),
             "doc_type": row.get("doc_type"),
             "source": row.get("source"),
+            "source_url": row.get("source_url"),
             "author": row.get("author"),
+            "publish_date": row.get("publish_date"),
+            "access_date": row.get("access_date"),
+            "page_no": row.get("page_no"),
+            "rights_note": row.get("rights_note"),
+            "verified": row.get("verified"),
             "score": score_map.get(row["id"], 0.0),
         })
 

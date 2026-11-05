@@ -13,7 +13,10 @@ import com.yiyun.entity.AiTask;
 import com.yiyun.mapper.AiTaskMapper;
 import com.yiyun.service.AiService;
 import com.yiyun.service.AiServiceClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -22,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -30,9 +34,22 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class AiServiceImpl implements AiService {
 
+    private static final Logger log = LoggerFactory.getLogger(AiServiceImpl.class);
+
     private final AiServiceClient aiServiceClient;
     private final AiTaskMapper aiTaskMapper;
     private final ObjectMapper objectMapper;
+
+    @Value("${ai.image.provider:dashscope}")
+    private String imageProvider;
+
+    @Value("${ai.image.model:qwen-image-3.0-pro}")
+    private String imageModel;
+
+    /** 外部任务轮询间隔（毫秒） */
+    private static final long POLL_INTERVAL_MS = 3000L;
+    /** 外部任务最大轮询次数（约 10 分钟） */
+    private static final int MAX_POLL_TIMES = 200;
 
     public AiServiceImpl(AiServiceClient aiServiceClient,
                          AiTaskMapper aiTaskMapper,
@@ -119,48 +136,82 @@ public class AiServiceImpl implements AiService {
         AiTask task = new AiTask();
         task.setUserId(userId);
         task.setTaskType("IMAGE");
-        task.setProvider("mock");
-        task.setModel("mock-image-v1");
+        task.setProvider(imageProvider);
+        task.setModel(imageModel);
         task.setInputText(request.getPrompt());
         task.setPrompt(buildImagePrompt(request));
         task.setStatus("RUNNING");
         task.setStartedAt(LocalDateTime.now());
+        task.setSourcesJson(buildSourcesJson(request));
+
+        // 提交到 AI 服务（DashScope 异步任务），获取外部任务 ID
+        String providerTaskId = aiServiceClient.submitImageTask(
+                request.getPrompt(), request.getStyle(), request.getSize(), request.getCount());
+        task.setProviderTaskId(providerTaskId);
+
         aiTaskMapper.insert(task);
 
         Long taskId = task.getId();
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                Thread.sleep(3000L);
-
-                AiTask update = new AiTask();
-                update.setId(taskId);
-                update.setStatus("SUCCESS");
-                update.setResultUrl(buildPlaceholderImageUrl(request.getStyle()));
-                update.setSourcesJson(buildSourcesJson(request));
-                update.setFinishedAt(LocalDateTime.now());
-                aiTaskMapper.updateById(update);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                AiTask update = new AiTask();
-                update.setId(taskId);
-                update.setStatus("FAILED");
-                update.setErrorMessage("生成被中断");
-                update.setFinishedAt(LocalDateTime.now());
-                aiTaskMapper.updateById(update);
-            } catch (Exception e) {
-                AiTask update = new AiTask();
-                update.setId(taskId);
-                update.setStatus("FAILED");
-                update.setErrorMessage(e.getMessage());
-                update.setFinishedAt(LocalDateTime.now());
-                aiTaskMapper.updateById(update);
-            }
-        });
+        // 异步轮询外部任务状态，直到完成或失败
+        CompletableFuture.runAsync(() -> pollImageTask(taskId, providerTaskId));
 
         AiTaskResponse resp = new AiTaskResponse();
         BeanUtils.copyProperties(task, resp);
         return resp;
+    }
+
+    /**
+     * 轮询 DashScope 图像生成任务状态，更新数据库。
+     */
+    private void pollImageTask(Long taskId, String providerTaskId) {
+        for (int i = 0; i < MAX_POLL_TIMES; i++) {
+            try {
+                Thread.sleep(POLL_INTERVAL_MS);
+                Map<String, Object> status = aiServiceClient.getImageTaskStatus(providerTaskId);
+                String taskStatus = (String) status.get("status");
+
+                if ("SUCCEEDED".equals(taskStatus)) {
+                    AiTask update = new AiTask();
+                    update.setId(taskId);
+                    update.setStatus("SUCCESS");
+                    update.setResultUrl((String) status.get("image_url"));
+                    update.setFinishedAt(LocalDateTime.now());
+                    aiTaskMapper.updateById(update);
+                    log.info("图像任务 {} 生成成功", taskId);
+                    return;
+                } else if ("FAILED".equals(taskStatus)) {
+                    AiTask update = new AiTask();
+                    update.setId(taskId);
+                    update.setStatus("FAILED");
+                    update.setErrorMessage((String) status.get("error"));
+                    update.setFinishedAt(LocalDateTime.now());
+                    aiTaskMapper.updateById(update);
+                    log.warn("图像任务 {} 生成失败: {}", taskId, status.get("error"));
+                    return;
+                }
+                // RUNNING 状态继续轮询
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                markTaskFailed(taskId, "生成被中断");
+                return;
+            } catch (Exception e) {
+                log.error("轮询图像任务 {} 状态异常: {}", taskId, e.getMessage());
+                markTaskFailed(taskId, "查询任务状态异常: " + e.getMessage());
+                return;
+            }
+        }
+        // 超过最大轮询次数仍未完成
+        markTaskFailed(taskId, "生成超时");
+    }
+
+    private void markTaskFailed(Long taskId, String errorMsg) {
+        AiTask update = new AiTask();
+        update.setId(taskId);
+        update.setStatus("FAILED");
+        update.setErrorMessage(errorMsg);
+        update.setFinishedAt(LocalDateTime.now());
+        aiTaskMapper.updateById(update);
     }
 
     private String buildImagePrompt(ImageGenerateRequest request) {
@@ -206,26 +257,6 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private String buildPlaceholderImageUrl(String style) {
-        String bg = "#E7E0D5";
-        String fg = "#782F35";
-        if (style != null) {
-            switch (style) {
-                case "ink" -> { bg = "#2C2C2C"; fg = "#F7F4EE"; }
-                case "oil" -> { bg = "#5C4A3A"; fg = "#E8C4A0"; }
-                case "watercolor" -> { bg = "#A8C5DA"; fg = "#2C3E50"; }
-                case "chinese-painting" -> { bg = "#F0E6D2"; fg = "#6B4423"; }
-                case "realistic" -> { bg = "#8B7355"; fg = "#F5E6D3"; }
-                default -> { }
-            }
-        }
-        String svg = "<svg xmlns='http://www.w3.org/2000/svg' width='768' height='768' viewBox='0 0 768 768'>"
-                + "<rect width='768' height='768' fill='" + bg + "'/>"
-                + "<text x='384' y='384' font-family='serif' font-size='32' fill='" + fg + "' text-anchor='middle' dominant-baseline='middle'>遗韵 · AI 生成</text>"
-                + "</svg>";
-        return "data:image/svg+xml;base64," + java.util.Base64.getEncoder().encodeToString(svg.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     @Override
