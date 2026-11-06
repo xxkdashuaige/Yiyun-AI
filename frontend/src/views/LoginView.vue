@@ -3,6 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
+import logoImg from '@/assets/logo.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -91,8 +92,11 @@ async function handleSubmit() {
       <div class="login-visual__overlay" />
       <div class="login-visual__content">
         <div class="login-visual__brand">
-          <span class="login-visual__logo">遗韵</span>
-          <span class="login-visual__tag">非遗文化智能创作平台</span>
+          <img :src="logoImg" alt="遗韵" class="login-visual__logo-img" />
+          <div class="login-visual__brand-text">
+            <span class="login-visual__logo">遗韵</span>
+            <span class="login-visual__tag">非遗文化智能创作平台</span>
+          </div>
         </div>
 
         <div class="login-visual__slogan">
@@ -247,8 +251,21 @@ async function handleSubmit() {
 
 .login-visual__brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
+}
+
+.login-visual__logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.login-visual__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .login-visual__logo {
@@ -256,6 +273,7 @@ async function handleSubmit() {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: 6px;
+  line-height: 1;
 }
 
 .login-visual__tag {

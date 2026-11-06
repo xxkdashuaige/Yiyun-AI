@@ -1,6 +1,7 @@
 <script setup>
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
+import logoImg from '@/assets/logo.png'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -27,7 +28,8 @@ function handleCommand(command) {
   <header class="app-header">
     <div class="app-header__inner">
       <router-link :to="{ name: 'Home' }" class="app-header__logo">
-        遗韵
+        <img :src="logoImg" alt="遗韵" class="app-header__logo-img" />
+        <span class="app-header__logo-text">遗韵</span>
       </router-link>
 
       <nav class="app-header__nav">
@@ -85,12 +87,25 @@ function handleCommand(command) {
 }
 
 .app-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.app-header__logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.app-header__logo-text {
   font-family: var(--yy-font-serif);
   font-size: 24px;
   font-weight: 700;
   color: var(--yy-color-primary);
   letter-spacing: 4px;
-  white-space: nowrap;
 }
 
 .app-header__nav {
