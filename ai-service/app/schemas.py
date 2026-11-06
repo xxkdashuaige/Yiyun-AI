@@ -5,7 +5,7 @@ Pydantic 请求/响应模型定义
 用于 FastAPI 自动校验和序列化。
 """
 
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
 
@@ -13,7 +13,8 @@ class ChatRequest(BaseModel):
     """AI 对话请求体"""
     message: str                          # 用户输入的问题
     heritage_project_id: Optional[int] = None  # 指定非遗项目 ID（可选，限定检索范围）
-    conversation_history: Optional[List[Dict[str, str]]] = None  # 对话历史，每条 {"role": "user"|"assistant", "content": "..."}
+    session_id: Optional[int] = None      # 指定会话 ID；不传则新建会话
+    conversation_history: Optional[List[Dict[str, str]]] = None  # 【已废弃】对话历史，改由后端按 session_id 从数据库读取
 
 
 class SourceItem(BaseModel):
@@ -39,3 +40,23 @@ class ChatResponse(BaseModel):
     """AI 对话响应体"""
     reply: str                            # AI 生成的回答文本
     sources: List[SourceItem] = []        # RAG 检索到的知识来源列表
+    session_id: int                       # 所属会话 ID（新建或已有）
+
+
+class ChatSession(BaseModel):
+    """对话会话"""
+    id: int
+    title: str
+    heritage_project_id: Optional[int] = None
+    created_at: str
+    updated_at: str
+
+
+class ChatMessage(BaseModel):
+    """对话消息"""
+    id: int
+    role: str
+    content: str
+    sources: Optional[List[Dict[str, Any]]] = None
+    seq_no: int
+    created_at: str

@@ -3,17 +3,19 @@ import { useUserStore } from '@/stores/user'
 import router from '@/router'
 import { ElMessage } from 'element-plus'
 
-export function chat(message, heritageProjectId = null, conversationHistory = []) {
-  const body = { message, conversationHistory }
+export function chat(message, heritageProjectId = null, sessionId = null) {
+  const body = { message }
   if (heritageProjectId) body.heritageProjectId = heritageProjectId
+  if (sessionId) body.sessionId = sessionId
   return request.post('/ai/chat', body)
 }
 
-export function chatStream(message, heritageProjectId, conversationHistory, callbacks) {
+export function chatStream(message, heritageProjectId, sessionId, callbacks) {
   const userStore = useUserStore()
   const { onDelta, onSources, onDone, onError } = callbacks
-  const body = { message, conversationHistory }
+  const body = { message }
   if (heritageProjectId) body.heritageProjectId = heritageProjectId
+  if (sessionId) body.sessionId = sessionId
 
   fetch('/api/ai/chat/stream', {
     method: 'POST',
@@ -66,7 +68,7 @@ export function chatStream(message, heritageProjectId, conversationHistory, call
                 if (obj.delta !== undefined) {
                   onDelta && onDelta(obj.delta)
                 } else if (obj.sources !== undefined) {
-                  onSources && onSources(obj.sources)
+                  onSources && onSources(obj.sources, obj.sessionId)
                 } else if (obj.error) {
                   onError && onError(new Error(obj.error))
                 }
@@ -81,6 +83,20 @@ export function chatStream(message, heritageProjectId, conversationHistory, call
       read()
     })
     .catch((e) => onError && onError(e))
+}
+
+// ==================== 会话管理 ====================
+
+export function getSessions() {
+  return request.get('/ai/sessions')
+}
+
+export function getSessionMessages(sessionId) {
+  return request.get(`/ai/sessions/${sessionId}/messages`)
+}
+
+export function deleteSession(sessionId) {
+  return request.delete(`/ai/sessions/${sessionId}`)
 }
 
 export function generateImage(data) {

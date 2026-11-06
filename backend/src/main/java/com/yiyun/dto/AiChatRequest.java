@@ -21,4 +21,7 @@ public class AiChatRequest {
 
     /** 对话历史消息列表，每条 {"role": "user"|"assistant", "content": "..."}（可选） */
     private List<Map<String, String>> conversationHistory;
+
+    /** 会话 ID（可选，传入则继续该会话，不传则新建会话） */
+    private Long sessionId;
 }

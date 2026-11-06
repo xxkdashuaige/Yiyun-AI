@@ -169,6 +169,7 @@ CREATE TABLE ai_task (
 
     result_url VARCHAR(500) DEFAULT NULL COMMENT '结果地址',
     error_message TEXT COMMENT '错误信息',
+    sources_json TEXT COMMENT 'RAG来源JSON（保存作品时关联写入biz_work_source）',
 
     started_at DATETIME DEFAULT NULL COMMENT '开始时间',
     finished_at DATETIME DEFAULT NULL COMMENT '完成时间',
@@ -301,6 +302,55 @@ CREATE TABLE sys_operation_log (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
   COMMENT='系统操作日志表';
+
+-- ==================== AI 对话会话与消息 ====================
+
+DROP TABLE IF EXISTS chat_message;
+DROP TABLE IF EXISTS chat_session;
+
+CREATE TABLE chat_session (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '会话ID',
+    user_id BIGINT UNSIGNED NOT NULL COMMENT '所属用户ID',
+    title VARCHAR(100) NOT NULL DEFAULT '新对话' COMMENT '会话标题（首条消息前20字）',
+    heritage_project_id BIGINT UNSIGNED DEFAULT NULL COMMENT '限定的非遗项目ID（可选）',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0已删除 1正常',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    KEY idx_status (status),
+    KEY idx_updated_at (updated_at),
+
+    CONSTRAINT fk_chat_session_user
+        FOREIGN KEY (user_id)
+        REFERENCES sys_user(id)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='AI对话会话表';
+
+CREATE TABLE chat_message (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '消息ID',
+    session_id BIGINT UNSIGNED NOT NULL COMMENT '所属会话ID',
+    role VARCHAR(20) NOT NULL COMMENT '角色：user / assistant',
+    content LONGTEXT NOT NULL COMMENT '消息内容',
+    sources JSON DEFAULT NULL COMMENT 'assistant消息的RAG检索来源',
+    seq_no INT NOT NULL COMMENT '消息在会话中的顺序号',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+
+    PRIMARY KEY (id),
+    KEY idx_session_id (session_id),
+    KEY idx_session_seq (session_id, seq_no),
+
+    CONSTRAINT fk_chat_message_session
+        FOREIGN KEY (session_id)
+        REFERENCES chat_session(id)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='AI对话消息表';
 
 -- ==================== 初始化数据 ====================
 

@@ -7,6 +7,9 @@ import com.yiyun.dto.AiTaskResponse;
 import com.yiyun.dto.ImageGenerateRequest;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * AI 生成服务接口
  */
@@ -48,4 +51,19 @@ public interface AiService {
      * 查询任务详情
      */
     AiTaskResponse getTask(Long taskId, Long userId);
+
+    /**
+     * 获取当前用户的会话列表
+     */
+    List<Map<String, Object>> listSessions();
+
+    /**
+     * 获取指定会话的消息列表
+     */
+    List<Map<String, Object>> getSessionMessages(Long sessionId);
+
+    /**
+     * 删除会话
+     */
+    void deleteSession(Long sessionId);
 }

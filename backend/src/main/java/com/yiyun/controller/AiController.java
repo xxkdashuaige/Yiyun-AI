@@ -13,6 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * AI 生成接口控制器
  * <p>
@@ -81,5 +84,30 @@ public class AiController {
     public Result<AiTaskResponse> getTask(@PathVariable Long id) {
         Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(aiService.getTask(id, userId));
+    }
+
+    /**
+     * 获取当前用户的会话列表
+     */
+    @GetMapping("/sessions")
+    public Result<List<Map<String, Object>>> listSessions() {
+        return Result.success(aiService.listSessions());
+    }
+
+    /**
+     * 获取指定会话的消息列表
+     */
+    @GetMapping("/sessions/{id}/messages")
+    public Result<List<Map<String, Object>>> getSessionMessages(@PathVariable Long id) {
+        return Result.success(aiService.getSessionMessages(id));
+    }
+
+    /**
+     * 删除会话
+     */
+    @DeleteMapping("/sessions/{id}")
+    public Result<Void> deleteSession(@PathVariable Long id) {
+        aiService.deleteSession(id);
+        return Result.success(null);
     }
 }

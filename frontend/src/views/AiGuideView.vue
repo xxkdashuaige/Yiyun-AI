@@ -1,7 +1,8 @@
 <script setup>
 import { ref, nextTick, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { chatStream } from '@/api/ai'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { chatStream, getSessions, getSessionMessages, deleteSession } from '@/api/ai'
 import { useHeritageStore } from '@/stores/heritage'
 
 const route = useRoute()
@@ -11,6 +12,10 @@ const messages = ref([])
 const input = ref('')
 const loading = ref(false)
 const messagesEl = ref(null)
+
+const sessions = ref([])
+const currentSessionId = ref(null)
+const sessionsLoading = ref(false)
 
 const heritageProjectId = computed(() => heritageStore.currentHeritage?.id || null)
 const heritageName = computed(() => heritageStore.currentHeritage?.name || '')
@@ -30,10 +35,57 @@ function scrollToBottom() {
   })
 }
 
-function buildHistory() {
-  return messages.value
-    .filter((m) => !m.loading && !m.error)
-    .map((m) => ({ role: m.role, content: m.content }))
+async function loadSessions() {
+  sessionsLoading.value = true
+  try {
+    const res = await getSessions()
+    sessions.value = res.data || res || []
+  } catch (e) {
+    console.error('加载会话列表失败', e)
+  } finally {
+    sessionsLoading.value = false
+  }
+}
+
+async function loadSessionMessages(sessionId) {
+  try {
+    const res = await getSessionMessages(sessionId)
+    const list = res.data || res || []
+    messages.value = list.map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      sources: m.sources || [],
+      loading: false,
+      error: null,
+    }))
+    currentSessionId.value = sessionId
+    scrollToBottom()
+  } catch (e) {
+    console.error('加载会话消息失败', e)
+    ElMessage.error('加载对话历史失败')
+  }
+}
+
+function startNewChat() {
+  currentSessionId.value = null
+  messages.value = []
+  input.value = ''
+}
+
+async function handleDeleteSession(sessionId, e) {
+  e.stopPropagation()
+  try {
+    await ElMessageBox.confirm('确定删除该对话吗？', '提示', { type: 'warning' })
+    await deleteSession(sessionId)
+    if (currentSessionId.value === sessionId) {
+      startNewChat()
+    }
+    sessions.value = sessions.value.filter((s) => s.id !== sessionId)
+    ElMessage.success('已删除')
+  } catch (e) {
+    if (e !== 'cancel') console.error(e)
+  }
 }
 
 function send(text) {
@@ -60,7 +112,7 @@ function send(text) {
   loading.value = true
   scrollToBottom()
 
-  chatStream(msg, heritageProjectId.value, buildHistory().slice(0, -1), {
+  chatStream(msg, heritageProjectId.value, currentSessionId.value, {
     onDelta: (delta) => {
       const target = messages.value.find((m) => m.id === placeholderId)
       if (target) {
@@ -68,10 +120,14 @@ function send(text) {
         scrollToBottom()
       }
     },
-    onSources: (sources) => {
+    onSources: (sources, sessionId) => {
       const target = messages.value.find((m) => m.id === placeholderId)
       if (target) {
         target.sources = sources || []
+      }
+      if (sessionId && currentSessionId.value !== sessionId) {
+        currentSessionId.value = sessionId
+        loadSessions()
       }
     },
     onDone: () => {
@@ -101,6 +157,7 @@ function clearHeritageScope() {
 }
 
 onMounted(() => {
+  loadSessions()
   const q = route.query.q
   if (q) {
     nextTick(() => send(q))
@@ -110,113 +167,145 @@ onMounted(() => {
 
 <template>
   <div class="ai-guide">
-    <div class="container">
-      <header class="page-header">
-        <h1 class="page-title">AI 文化向导</h1>
-        <p class="page-subtitle">基于非遗知识库的智能问答，每个回答附带文献来源，可追溯可验证</p>
-        <div v-if="heritageProjectId" class="scope-bar">
-          <el-tag type="info" effect="plain" closable @close="clearHeritageScope">
-            检索范围：{{ heritageName }}
-          </el-tag>
-        </div>
-      </header>
-
-      <div ref="messagesEl" class="chat-messages">
-        <div v-if="messages.length === 0" class="welcome">
-          <div class="welcome-icon">
-            <el-icon :size="40"><ChatDotRound /></el-icon>
-          </div>
-          <h3 class="welcome-title">你好，我是遗韵 AI 向导</h3>
-          <p class="welcome-text">我可以为你解答关于非物质文化遗产的历史、工艺、文化内涵等问题。</p>
-          <div class="suggestions">
-            <el-tag
-              v-for="s in SUGGESTIONS"
-              :key="s"
-              class="suggestion-chip"
-              @click="send(s)"
+    <div class="layout">
+      <aside class="sidebar">
+        <el-button class="new-chat-btn" type="primary" plain @click="startNewChat">
+          <el-icon><Plus /></el-icon>
+          <span>新建对话</span>
+        </el-button>
+        <div class="session-list" v-loading="sessionsLoading">
+          <div
+            v-for="s in sessions"
+            :key="s.id"
+            class="session-item"
+            :class="{ active: s.id === currentSessionId }"
+            @click="loadSessionMessages(s.id)"
+          >
+            <el-icon class="session-icon"><ChatDotRound /></el-icon>
+            <span class="session-title">{{ s.title }}</span>
+            <el-button
+              class="session-del"
+              link
+              type="danger"
+              @click="handleDeleteSession(s.id, $event)"
             >
-              {{ s }}
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </div>
+          <div v-if="sessions.length === 0 && !sessionsLoading" class="session-empty">
+            暂无历史对话
+          </div>
+        </div>
+      </aside>
+
+      <div class="container">
+        <header class="page-header">
+          <h1 class="page-title">AI 文化向导</h1>
+          <p class="page-subtitle">基于非遗知识库的智能问答，每个回答附带文献来源，可追溯可验证</p>
+          <div v-if="heritageProjectId" class="scope-bar">
+            <el-tag type="info" effect="plain" closable @close="clearHeritageScope">
+              检索范围：{{ heritageName }}
             </el-tag>
           </div>
-        </div>
+        </header>
 
-        <div
-          v-for="m in messages"
-          :key="m.id"
-          class="message"
-          :class="m.role"
-        >
-          <div v-if="m.role === 'assistant'" class="avatar ai-avatar">
-            <el-icon><MagicStick /></el-icon>
-          </div>
-          <div class="bubble-wrap">
-            <div
-              v-if="m.role === 'user' || m.content || m.loading || m.error"
-              class="bubble"
-              :class="{ 'bubble-user': m.role === 'user' }"
-            >
-              <template v-if="m.loading && !m.content">
-                <span class="typing">
-                  <i></i><i></i><i></i>
-                </span>
-              </template>
-              <template v-else-if="m.error">
-                <span class="error-text">
-                  <el-icon><Warning /></el-icon>
-                  {{ m.error }}
-                </span>
-              </template>
-              <template v-else>
-                <p class="bubble-text">{{ m.content }}</p>
-                <span v-if="m.loading" class="stream-cursor"></span>
-              </template>
+        <div ref="messagesEl" class="chat-messages">
+          <div v-if="messages.length === 0" class="welcome">
+            <div class="welcome-icon">
+              <el-icon :size="40"><ChatDotRound /></el-icon>
             </div>
+            <h3 class="welcome-title">你好，我是遗韵 AI 向导</h3>
+            <p class="welcome-text">我可以为你解答关于非物质文化遗产的历史、工艺、文化内涵等问题。</p>
+            <div class="suggestions">
+              <el-tag
+                v-for="s in SUGGESTIONS"
+                :key="s"
+                class="suggestion-chip"
+                @click="send(s)"
+              >
+                {{ s }}
+              </el-tag>
+            </div>
+          </div>
 
-            <div v-if="m.role === 'assistant' && m.sources && m.sources.length > 0" class="sources">
-              <el-collapse class="sources-collapse">
-                <el-collapse-item title="引用来源" name="1">
-                  <div
-                    v-for="(src, idx) in m.sources"
-                    :key="src.chunkId || idx"
-                    class="source-item"
-                  >
-                    <div class="source-head">
-                      <span class="source-title">{{ src.title || '未命名文档' }}</span>
-                      <el-tag v-if="src.docType" type="info" size="small" effect="plain">{{ src.docType }}</el-tag>
+          <div
+            v-for="m in messages"
+            :key="m.id"
+            class="message"
+            :class="m.role"
+          >
+            <div v-if="m.role === 'assistant'" class="avatar ai-avatar">
+              <el-icon><MagicStick /></el-icon>
+            </div>
+            <div class="bubble-wrap">
+              <div
+                v-if="m.role === 'user' || m.content || m.loading || m.error"
+                class="bubble"
+                :class="{ 'bubble-user': m.role === 'user' }"
+              >
+                <template v-if="m.loading && !m.content">
+                  <span class="typing">
+                    <i></i><i></i><i></i>
+                  </span>
+                </template>
+                <template v-else-if="m.error">
+                  <span class="error-text">
+                    <el-icon><Warning /></el-icon>
+                    {{ m.error }}
+                  </span>
+                </template>
+                <template v-else>
+                  <p class="bubble-text">{{ m.content }}</p>
+                  <span v-if="m.loading" class="stream-cursor"></span>
+                </template>
+              </div>
+
+              <div v-if="m.role === 'assistant' && m.sources && m.sources.length > 0" class="sources">
+                <el-collapse class="sources-collapse">
+                  <el-collapse-item title="引用来源" name="1">
+                    <div
+                      v-for="(src, idx) in m.sources"
+                      :key="src.chunkId || idx"
+                      class="source-item"
+                    >
+                      <div class="source-head">
+                        <span class="source-title">{{ src.title || '未命名文档' }}</span>
+                        <el-tag v-if="src.docType" type="info" size="small" effect="plain">{{ src.docType }}</el-tag>
+                      </div>
+                      <p class="source-content">{{ src.content }}</p>
+                      <div v-if="src.source" class="source-meta">来源：{{ src.source }}</div>
                     </div>
-                    <p class="source-content">{{ src.content }}</p>
-                    <div v-if="src.source" class="source-meta">来源：{{ src.source }}</div>
-                  </div>
-                </el-collapse-item>
-              </el-collapse>
+                  </el-collapse-item>
+                </el-collapse>
+              </div>
+            </div>
+            <div v-if="m.role === 'user'" class="avatar user-avatar">
+              <el-icon><User /></el-icon>
             </div>
           </div>
-          <div v-if="m.role === 'user'" class="avatar user-avatar">
-            <el-icon><User /></el-icon>
-          </div>
         </div>
-      </div>
 
-      <div class="input-area">
-        <el-input
-          v-model="input"
-          type="textarea"
-          :rows="2"
-          resize="none"
-          placeholder="输入你的问题，按 Enter 发送，Shift + Enter 换行"
-          @keydown.enter.exact.prevent="send()"
-          :disabled="loading"
-        />
-        <el-button
-          type="primary"
-          class="send-btn"
-          :loading="loading"
-          :disabled="!input.trim()"
-          @click="send()"
-        >
-          <el-icon><Promotion /></el-icon>
-          <span>发送</span>
-        </el-button>
+        <div class="input-area">
+          <el-input
+            v-model="input"
+            type="textarea"
+            :rows="2"
+            resize="none"
+            placeholder="输入你的问题，按 Enter 发送，Shift + Enter 换行"
+            @keydown.enter.exact.prevent="send()"
+            :disabled="loading"
+          />
+          <el-button
+            type="primary"
+            class="send-btn"
+            :loading="loading"
+            :disabled="!input.trim()"
+            @click="send()"
+          >
+            <el-icon><Promotion /></el-icon>
+            <span>发送</span>
+          </el-button>
+        </div>
       </div>
     </div>
   </div>
@@ -226,21 +315,102 @@ onMounted(() => {
 .ai-guide {
   background: var(--yy-color-bg);
   min-height: calc(100vh - 64px);
-  padding: 40px 0;
+}
+
+.layout {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px var(--yy-page-padding);
+  gap: 20px;
+  height: calc(100vh - 64px - 48px);
+}
+
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--yy-color-surface);
+  border: 1px solid var(--yy-color-border);
+  border-radius: var(--yy-radius-card);
+  box-shadow: var(--yy-shadow-card);
+  overflow: hidden;
+}
+
+.new-chat-btn {
+  margin: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.session-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: background var(--yy-transition);
+}
+
+.session-item:hover {
+  background: var(--yy-color-bg);
+}
+
+.session-item.active {
+  background: #efdcde;
+}
+
+.session-icon {
+  color: var(--yy-color-primary);
+  flex-shrink: 0;
+}
+
+.session-title {
+  flex: 1;
+  font-size: 13px;
+  color: var(--yy-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-del {
+  opacity: 0;
+  transition: opacity var(--yy-transition);
+}
+
+.session-item:hover .session-del {
+  opacity: 1;
+}
+
+.session-empty {
+  text-align: center;
+  padding: 32px 16px;
+  font-size: 13px;
+  color: var(--yy-color-muted);
 }
 
 .container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 var(--yy-page-padding);
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 80px);
+  min-width: 0;
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .page-title {
@@ -524,9 +694,15 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .container {
-    padding: 0 16px;
-    height: calc(100vh - 64px - 32px);
+  .layout {
+    flex-direction: column;
+    height: auto;
+    padding: 16px;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-height: 200px;
   }
 
   .page-title {

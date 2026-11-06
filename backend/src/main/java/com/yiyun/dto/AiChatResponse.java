@@ -18,4 +18,7 @@ public class AiChatResponse {
 
     /** 任务 ID（用于追踪和作品关联） */
     private Long taskId;
+
+    /** 会话 ID（新建或续接的会话） */
+    private Long sessionId;
 }

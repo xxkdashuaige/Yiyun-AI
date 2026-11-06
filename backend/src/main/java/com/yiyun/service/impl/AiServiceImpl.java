@@ -13,6 +13,7 @@ import com.yiyun.entity.AiTask;
 import com.yiyun.mapper.AiTaskMapper;
 import com.yiyun.service.AiService;
 import com.yiyun.service.AiServiceClient;
+import com.yiyun.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -104,9 +105,12 @@ public class AiServiceImpl implements AiService {
 
         SseEmitter emitter = new SseEmitter(120000L);
 
+        // 在请求线程中提取 Token，因为异步线程无法访问 RequestContextHolder
+        String token = SecurityUtil.getCurrentToken();
+
         CompletableFuture.runAsync(() -> {
             try {
-                aiServiceClient.chatStream(request, emitter,
+                aiServiceClient.chatStream(request, emitter, token,
                         reply -> {
                             AiTask update = new AiTask();
                             update.setId(task.getId());
@@ -283,5 +287,20 @@ public class AiServiceImpl implements AiService {
         AiTaskResponse resp = new AiTaskResponse();
         BeanUtils.copyProperties(task, resp);
         return resp;
+    }
+
+    @Override
+    public List<Map<String, Object>> listSessions() {
+        return aiServiceClient.listSessions();
+    }
+
+    @Override
+    public List<Map<String, Object>> getSessionMessages(Long sessionId) {
+        return aiServiceClient.getSessionMessages(sessionId);
+    }
+
+    @Override
+    public void deleteSession(Long sessionId) {
+        aiServiceClient.deleteSession(sessionId);
     }
 }

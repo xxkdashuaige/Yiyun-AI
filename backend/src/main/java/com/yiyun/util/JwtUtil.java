@@ -47,7 +47,7 @@ public class JwtUtil {
                 .claim("username", username)         // 自定义 claim 存储用户名
                 .issuedAt(now)                       // 签发时间
                 .expiration(expiryDate)              // 过期时间
-                .signWith(getSigningKey())           // 签名
+                .signWith(getSigningKey(), Jwts.SIG.HS256)  // 显式指定 HS256，与 ai-service 保持一致
                 .compact();
     }
 

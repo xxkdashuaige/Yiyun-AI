@@ -46,6 +46,10 @@ class Settings:
     MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "root")
     MYSQL_DATABASE: str = os.getenv("MYSQL_DATABASE", "yiyun")
 
+    # ==================== JWT 认证配置（与 Spring Boot 后端共享同一 secret） ====================
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "yiyun-heritage-ai-platform-2024-secret-key-must-be-long-enough")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+
     # ==================== 文本切分配置 ====================
     CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "400"))              # 单片段目标字数
     CHUNK_OVERLAP_RATIO: float = float(os.getenv("CHUNK_OVERLAP_RATIO", "0.15"))  # 相邻片段重叠比例
